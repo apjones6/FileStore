@@ -1,0 +1,46 @@
+﻿using System;
+using System.IO;
+
+namespace Store
+{
+    // TODO
+    // Cannot support repository moving as absolute paths are stored - wrapper store?
+    // Cannot support multiple repositories - wrapper store?
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.SetWindowSize(180, 50);
+
+            var current = Directory.GetCurrentDirectory();
+            var files = new[]
+                {
+                    Path.Combine(current, "Content", "Karei's Healing Circle.jpg"),
+                    Path.Combine(current, "Content", "Radiant Scythe.jpg"),
+                    Path.Combine(current, "Content", "Searing Flames.jpg")
+                };
+
+            // Recycle output directory
+            var root = Path.Combine(current, "Store");
+            Directory.CreateDirectory(root);
+            foreach (var file in Directory.EnumerateFiles(root))
+            {
+                File.Delete(file);
+            }
+
+            // Initialize
+            var store = new FileStoreWrapper(new SimpleFileStore(root));
+
+            // Test
+            var handle1 = store.Insert(files[0]);
+            var handle2 = store.Duplicate(handle1.Id);
+            store.Replace(handle1.Id, files[1]);
+            store.Replace(handle2.Id, files[2]);
+            store.Remove(handle1.Id);
+
+            // Pause while inspecting input
+            Console.ReadKey();
+        }
+    }
+}
