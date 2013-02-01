@@ -43,15 +43,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DistributedFileStore.cs" />
     <Compile Include="FileHandle.cs" />
     <Compile Include="FileStore.cs" />
-    <Compile Include="FileStoreWrapper.cs" />
+    <Compile Include="FileStoreLogWrapper.cs" />
+    <Compile Include="IFileLocator.cs" />
     <Compile Include="IFileStore.cs" />
     <Compile Include="IHandleStore.cs" />
     <Compile Include="MemoryHandleStore.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleFileLocator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Karei%27s Healing Circle.jpg">

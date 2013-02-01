@@ -7,16 +7,12 @@ namespace Store
     {
         private readonly Guid id;
         private readonly string path;
-        private readonly long size;
+        private long? size;
 
         public FileHandle(Guid id, string path)
         {
             this.id = id;
             this.path = path;
-            if (File.Exists(path))
-            {
-                this.size = new FileInfo(path).Length;
-            }
         }
 
         public FileHandle(Guid id, string path, long size)
@@ -38,7 +34,15 @@ namespace Store
 
         public long Size
         {
-            get { return size; }
+            get
+            {
+                if (size == null && File.Exists(path))
+                {
+                    size = new FileInfo(path).Length;
+                }
+
+                return size.Value;
+            }
         }
     }
 }

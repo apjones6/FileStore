@@ -24,13 +24,21 @@ namespace Store
             // Recycle output directory
             var root = Path.Combine(current, "Store");
             Directory.CreateDirectory(root);
-            foreach (var file in Directory.EnumerateFiles(root))
+            foreach (var entry in Directory.EnumerateFileSystemEntries(root))
             {
-                File.Delete(file);
+                if (Directory.Exists(entry))
+                {
+                    Directory.Delete(entry, true);
+                }
+                else
+                {
+                    File.Delete(entry);
+                }
             }
 
             // Initialize
-            var store = new FileStoreWrapper(new SimpleFileStore(root));
+            var store = new FileStoreLogWrapper(new SimpleFileStore(root));
+            store.Initialize();
 
             // Test
             var handle1 = store.Insert(files[0]);

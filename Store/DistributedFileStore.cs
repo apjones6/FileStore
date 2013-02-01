@@ -8,8 +8,14 @@ namespace Store
     public class DistributedFileStore : IFileStore
     {
         private readonly Dictionary<Location, IFileStore> stores;
+        private readonly IHandleStore handleStore;
 
         public DistributedFileStore(Location[] locations)
+            : this(locations, new MemoryHandleStore())
+        {
+        }
+
+        public DistributedFileStore(Location[] locations, IHandleStore handleStore)
         {
             if (locations == null) throw new ArgumentNullException("locations");
             if (locations.Length == 0) throw new ArgumentException("At least one location is required.", "locations");
@@ -18,7 +24,16 @@ namespace Store
                 throw new ArgumentException("All locations must be distinct.", "locations");
             }
 
-            this.stores = locations.ToDictionary(x => x, x => (IFileStore)new SimpleFileStore(x.Path));
+            this.stores = locations.ToDictionary(x => x, x => (IFileStore)new SimpleFileStore(x.Path, handleStore));
+            this.handleStore = handleStore;
+        }
+
+        public void Initialize()
+        {
+            foreach (var store in stores.Values)
+            {
+                store.Initialize();
+            }
         }
 
         public FileHandle Retrieve(Guid id)
@@ -59,18 +74,18 @@ namespace Store
         public class Location
         {
             private readonly string path;
-            private readonly long? size;
+            private readonly long? maxSize;
 
             public Location(string path)
             {
                 this.path = path;
-                this.size = null;
+                this.maxSize = null;
             }
 
-            public Location(string path, long size)
+            public Location(string path, long maxSize)
             {
                 this.path = path;
-                this.size = size;
+                this.maxSize = maxSize;
             }
 
             public string Path
@@ -78,9 +93,9 @@ namespace Store
                 get { return path; }
             }
 
-            public long? Size
+            public long? MaxSize
             {
-                get { return size; }
+                get { return maxSize; }
             }
         }
     }

@@ -6,6 +6,7 @@ namespace Store
     public class SimpleFileStore : IFileStore
     {
         private readonly IHandleStore handleStore;
+        private readonly IFileLocator fileLocator;
         private readonly string root;
 
         public SimpleFileStore(string root)
@@ -14,14 +15,25 @@ namespace Store
         }
 
         public SimpleFileStore(string root, IHandleStore handleStore)
+            : this(root, handleStore, new SimpleFileLocator())
+        {
+        }
+
+        public SimpleFileStore(string root, IHandleStore handleStore, IFileLocator fileLocator)
         {
             this.handleStore = handleStore;
+            this.fileLocator = fileLocator;
             this.root = root;
+        }
+
+        public void Initialize()
+        {
+            fileLocator.PrepareDirectory(root);
         }
 
         public FileHandle Retrieve(Guid id)
         {
-            return handleStore.Get(id);
+            return FixPath(handleStore.Get(id));
         }
 
         public FileHandle Insert(Stream stream)
@@ -29,9 +41,9 @@ namespace Store
             if (stream == null) throw new ArgumentNullException("stream");
 
             var id = Guid.NewGuid();
-            var destination = Path.Combine(root, id.ToString());
+            var destination = fileLocator.GetPath(id);
 
-            using (var filestream = File.Create(destination))
+            using (var filestream = File.Create(Path.Combine(root, destination)))
             {
                 stream.CopyTo(filestream);
             }
@@ -39,7 +51,7 @@ namespace Store
             var handle = new FileHandle(id, destination);
             handleStore.Insert(handle);
 
-            return handle;
+            return FixPath(handle);
         }
 
         public FileHandle Insert(string path)
@@ -48,14 +60,14 @@ namespace Store
             if (!File.Exists(path)) throw new FileNotFoundException("The file could not be found", path);
 
             var id = Guid.NewGuid();
-            var destination = Path.Combine(root, string.Concat(id, Path.GetExtension(path)));
+            var destination = fileLocator.GetPath(path);
 
-            File.Copy(path, destination);
+            File.Copy(path, Path.Combine(root, destination));
 
             var handle = new FileHandle(id, destination);
             handleStore.Insert(handle);
 
-            return handle;
+            return FixPath(handle);
         }
 
         public FileHandle Duplicate(Guid id)
@@ -70,7 +82,7 @@ namespace Store
 
             handleStore.Insert(duplicate);
 
-            return duplicate;
+            return FixPath(duplicate);
         }
 
         public FileHandle Replace(Guid id, Stream stream)
@@ -83,9 +95,9 @@ namespace Store
                 throw new ArgumentException("No handle with id found.", "id");
             }
 
-            var destination = Path.Combine(root, Guid.NewGuid().ToString());
+            var destination = fileLocator.GetPath(Guid.NewGuid());
 
-            using (var filestream = File.Create(destination))
+            using (var filestream = File.Create(Path.Combine(root, destination)))
             {
                 stream.CopyTo(filestream);
             }
@@ -95,10 +107,10 @@ namespace Store
 
             if (handleStore.Count(handle.Path) == 0)
             {
-                File.Delete(handle.Path);
+                File.Delete(Path.Combine(root, handle.Path));
             }
 
-            return replacement;
+            return FixPath(replacement);
         }
 
         public FileHandle Replace(Guid id, string path)
@@ -112,18 +124,18 @@ namespace Store
                 throw new ArgumentException("No handle with id found.", "id");
             }
 
-            var destination = Path.Combine(root, string.Concat(Guid.NewGuid(), Path.GetExtension(path)));
-            File.Copy(path, destination);
+            var destination = fileLocator.GetPath(path);
+            File.Copy(path, Path.Combine(root, destination));
 
             var replacement = new FileHandle(id, destination);
             handleStore.Update(replacement);
 
             if (handleStore.Count(handle.Path) == 0)
             {
-                File.Delete(handle.Path);
+                File.Delete(Path.Combine(root, handle.Path));
             }
 
-            return replacement;
+            return FixPath(replacement);
         }
 
         public void Remove(Guid id)
@@ -138,8 +150,13 @@ namespace Store
 
             if (handleStore.Count(handle.Path) == 0)
             {
-                File.Delete(handle.Path);
+                File.Delete(Path.Combine(root, handle.Path));
             }
+        }
+
+        private FileHandle FixPath(FileHandle handle)
+        {
+            return new FileHandle(handle.Id, Path.Combine(root, handle.Path));
         }
     }
 }

@@ -3,13 +3,18 @@ using System.IO;
 
 namespace Store
 {
-    public class FileStoreWrapper : IFileStore
+    public class FileStoreLogWrapper : IFileStore
     {
         private readonly IFileStore store;
 
-        public FileStoreWrapper(IFileStore store)
+        public FileStoreLogWrapper(IFileStore store)
         {
             this.store = store;
+        }
+
+        public void Initialize()
+        {
+            store.Initialize();
         }
 
         public FileHandle Retrieve(Guid id)

@@ -5,6 +5,8 @@ namespace Store
 {
     public interface IFileStore
     {
+        void Initialize();
+
         FileHandle Retrieve(Guid id);
 
         FileHandle Insert(Stream stream);
