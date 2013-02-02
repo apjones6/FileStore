@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FileHandle.cs" />
+    <Compile Include="FileHandleEventArgs.cs" />
     <Compile Include="FileStore.cs" />
     <Compile Include="FileStoreLogWrapper.cs" />
     <Compile Include="IFileLocator.cs" />

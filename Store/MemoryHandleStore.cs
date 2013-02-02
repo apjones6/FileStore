@@ -31,7 +31,20 @@ namespace Store
 
         public void Remove(Guid id)
         {
-            handles.RemoveAll(x => x.Id == id);
+            var handle = handles.FirstOrDefault(x => x.Id == id);
+            if (handle != null)
+            {
+                handles.RemoveAll(x => x.Id == id);
+
+                // Notify if last handle removed
+                if (LastHandleRemoved != null && Count(handle.Path) == 0)
+                {
+                    var e = new FileHandleEventArgs(handle);
+                    LastHandleRemoved(this, e);
+                }
+            }
         }
+
+        public event EventHandler<FileHandleEventArgs> LastHandleRemoved;
     }
 }

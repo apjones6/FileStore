@@ -22,6 +22,7 @@ namespace Store
         public SimpleFileStore(string root, IHandleStore handleStore, IFileLocator fileLocator)
         {
             this.handleStore = handleStore;
+            this.handleStore.LastHandleRemoved += OnLastHandleRemoved;
             this.fileLocator = fileLocator;
             this.root = root;
         }
@@ -89,12 +90,6 @@ namespace Store
         {
             if (stream == null) throw new ArgumentNullException("stream");
 
-            var handle = handleStore.Get(id);
-            if (handle == null)
-            {
-                throw new ArgumentException("No handle with id found.", "id");
-            }
-
             var destination = fileLocator.GetPath(Guid.NewGuid());
 
             using (var filestream = File.Create(Path.Combine(root, destination)))
@@ -105,11 +100,6 @@ namespace Store
             var replacement = new FileHandle(id, destination);
             handleStore.Update(replacement);
 
-            if (handleStore.Count(handle.Path) == 0)
-            {
-                File.Delete(Path.Combine(root, handle.Path));
-            }
-
             return FixPath(replacement);
         }
 
@@ -118,45 +108,32 @@ namespace Store
             if (path == null) throw new ArgumentNullException("path");
             if (!File.Exists(path)) throw new FileNotFoundException("The file could not be found", path);
 
-            var handle = handleStore.Get(id);
-            if (handle == null)
-            {
-                throw new ArgumentException("No handle with id found.", "id");
-            }
-
             var destination = fileLocator.GetPath(path);
             File.Copy(path, Path.Combine(root, destination));
 
             var replacement = new FileHandle(id, destination);
             handleStore.Update(replacement);
 
-            if (handleStore.Count(handle.Path) == 0)
-            {
-                File.Delete(Path.Combine(root, handle.Path));
-            }
-
             return FixPath(replacement);
         }
 
         public void Remove(Guid id)
         {
-            var handle = handleStore.Get(id);
-            if (handle == null)
-            {
-                throw new ArgumentException("No handle with id found.", "id");
-            }
-
             handleStore.Remove(id);
-
-            if (handleStore.Count(handle.Path) == 0)
-            {
-                File.Delete(Path.Combine(root, handle.Path));
-            }
         }
 
         private FileHandle FixPath(FileHandle handle)
         {
             return new FileHandle(handle.Id, Path.Combine(root, handle.Path));
+        }
+
+        private void OnLastHandleRemoved(object sender, FileHandleEventArgs e)
+        {
+            var path = Path.Combine(root, e.Handle.Path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
     }
 }

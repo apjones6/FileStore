@@ -11,5 +11,7 @@ namespace Store
         void Insert(FileHandle handle);
         void Update(FileHandle handle);
         void Remove(Guid id);
+
+        event EventHandler<FileHandleEventArgs> LastHandleRemoved;
     }
 }
