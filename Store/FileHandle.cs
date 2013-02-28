@@ -41,7 +41,7 @@ namespace Store
                     size = new FileInfo(path).Length;
                 }
 
-                return size.Value;
+                return size ?? -1;
             }
         }
     }

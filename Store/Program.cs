@@ -16,23 +16,19 @@ namespace Store
             var current = Directory.GetCurrentDirectory();
             var files = new[]
                 {
-                    Path.Combine(current, "Content", "Karei's Healing Circle.jpg"),
-                    Path.Combine(current, "Content", "Radiant Scythe.jpg"),
-                    Path.Combine(current, "Content", "Searing Flames.jpg")
+                    Path.Combine(current, "Content/Karei's Healing Circle.jpg"),
+                    Path.Combine(current, "Content/Radiant Scythe.jpg"),
+                    Path.Combine(current, "Content/Searing Flames.jpg")
                 };
 
             // Recycle output directory
             var root = Path.Combine(current, "Store");
             Directory.CreateDirectory(root);
-            foreach (var entry in Directory.EnumerateFileSystemEntries(root))
+            foreach (var path in Directory.EnumerateFiles(root, string.Empty, SearchOption.AllDirectories))
             {
-                if (Directory.Exists(entry))
+                if (File.Exists(path))
                 {
-                    Directory.Delete(entry, true);
-                }
-                else
-                {
-                    File.Delete(entry);
+                    File.Delete(path);
                 }
             }
 

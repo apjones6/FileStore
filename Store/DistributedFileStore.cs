@@ -8,24 +8,15 @@ namespace Store
     public class DistributedFileStore : IFileStore
     {
         private readonly Dictionary<Location, IFileStore> stores;
-        private readonly IHandleStore handleStore;
 
         public DistributedFileStore(Location[] locations)
-            : this(locations, new MemoryHandleStore())
         {
+            this.stores = locations.ToDictionary(x => x, x => (IFileStore)new SimpleFileStore(x.Path));
         }
 
-        public DistributedFileStore(Location[] locations, IHandleStore handleStore)
+        public long TotalSize
         {
-            if (locations == null) throw new ArgumentNullException("locations");
-            if (locations.Length == 0) throw new ArgumentException("At least one location is required.", "locations");
-            if (locations.GroupBy(x => x.Path).Any(x => x.Count() > 1))
-            {
-                throw new ArgumentException("All locations must be distinct.", "locations");
-            }
-
-            this.stores = locations.ToDictionary(x => x, x => (IFileStore)new SimpleFileStore(x.Path, handleStore));
-            this.handleStore = handleStore;
+            get { return stores.Values.Sum(x => x.TotalSize); }
         }
 
         public void Initialize()
@@ -38,49 +29,71 @@ namespace Store
 
         public FileHandle Retrieve(Guid id)
         {
-            throw new NotImplementedException();
+            return stores.Values.Select(x => x.Retrieve(id)).FirstOrDefault();
         }
 
-        public FileHandle Insert(Stream stream)
+        public FileHandle Insert(Stream stream, string filename)
         {
-            throw new NotImplementedException();
+            return StoreFor(stream.Length).Insert(stream, filename);
         }
 
         public FileHandle Insert(string path)
         {
-            throw new NotImplementedException();
+            return StoreFor(path).Insert(path);
         }
 
         public FileHandle Duplicate(Guid id)
         {
-            throw new NotImplementedException();
+            return StoreFor(id).Duplicate(id);
         }
 
-        public FileHandle Replace(Guid id, Stream stream)
+        public FileHandle Replace(Guid id, Stream stream, string filename)
         {
-            throw new NotImplementedException();
+            return StoreFor(id).Duplicate(id);
         }
 
         public FileHandle Replace(Guid id, string path)
         {
-            throw new NotImplementedException();
+            return StoreFor(id).Replace(id, path);
         }
 
         public void Remove(Guid id)
         {
-            throw new NotImplementedException();
+            StoreFor(id).Remove(id);
+        }
+
+        private IFileStore StoreFor(string path)
+        {
+            return StoreFor(new FileInfo(path).Length);
+        }
+
+        private IFileStore StoreFor(long length)
+        {
+            var weights = stores.ToDictionary(x => x.Key, x => 1 - (double)x.Value.TotalSize / x.Key.MaxSize);
+
+            var store = stores
+                .OrderByDescending(x => weights[x.Key])
+                .Where(x => (x.Key.MaxSize - x.Value.TotalSize) >= length)
+                .Select(x => x.Value)
+                .FirstOrDefault();
+
+            if (store == null)
+            {
+                throw new IOException("No FileStores have sufficient available space.");
+            }
+
+            return store;
+        }
+
+        private IFileStore StoreFor(Guid id)
+        {
+            return stores.Values.FirstOrDefault(x => x.Retrieve(id) != null);
         }
 
         public class Location
         {
             private readonly string path;
-            private readonly long? maxSize;
-
-            public Location(string path)
-            {
-                this.path = path;
-                this.maxSize = null;
-            }
+            private readonly long maxSize;
 
             public Location(string path, long maxSize)
             {
@@ -93,7 +106,7 @@ namespace Store
                 get { return path; }
             }
 
-            public long? MaxSize
+            public long MaxSize
             {
                 get { return maxSize; }
             }

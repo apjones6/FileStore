@@ -12,6 +12,11 @@ namespace Store
             this.store = store;
         }
 
+        public long TotalSize
+        {
+            get { return store.TotalSize; }
+        }
+
         public void Initialize()
         {
             store.Initialize();
@@ -21,12 +26,12 @@ namespace Store
         {
             return store.Retrieve(id);
         }
-
-        public FileHandle Insert(Stream stream)
+        
+        public FileHandle Insert(Stream stream, string filename)
         {
-            return store.Insert(stream);
+            return store.Insert(stream, filename);
         }
-
+        
         public FileHandle Insert(string path)
         {
             var handle = store.Insert(path);
@@ -44,12 +49,12 @@ namespace Store
 
             return handle;
         }
-
-        public FileHandle Replace(Guid id, Stream stream)
+        
+        public FileHandle Replace(Guid id, Stream stream, string filename)
         {
-            return store.Replace(id, stream);
+            return store.Replace(id, stream, filename);
         }
-
+        
         public FileHandle Replace(Guid id, string path)
         {
             var handle = store.Replace(id, path);
@@ -68,7 +73,7 @@ namespace Store
         private static void Write(string action, Guid id)
         {
             Console.Write(action + " [id=");
-            Console.ForegroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = ConsoleColor.Cyan;
             Console.Write(id);
             Console.ResetColor();
             Console.Write("]");
@@ -79,7 +84,7 @@ namespace Store
         private static void Write(string action, FileHandle handle)
         {
             Console.Write(action + " [id=");
-            Console.ForegroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = ConsoleColor.Cyan;
             Console.Write(handle.Id);
             Console.ResetColor();
             Console.Write("|path=");

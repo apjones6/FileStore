@@ -1,13 +1,15 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace Store
 {
     public class SimpleFileStore : IFileStore
     {
         private readonly IHandleStore handleStore;
-        private readonly IFileLocator fileLocator;
         private readonly string root;
+
+        private long? totalSize;
 
         public SimpleFileStore(string root)
             : this(root, new MemoryHandleStore())
@@ -15,106 +17,96 @@ namespace Store
         }
 
         public SimpleFileStore(string root, IHandleStore handleStore)
-            : this(root, handleStore, new SimpleFileLocator())
-        {
-        }
-
-        public SimpleFileStore(string root, IHandleStore handleStore, IFileLocator fileLocator)
         {
             this.handleStore = handleStore;
             this.handleStore.LastHandleRemoved += OnLastHandleRemoved;
-            this.fileLocator = fileLocator;
             this.root = root;
+        }
+
+        public long TotalSize
+        {
+            get
+            {
+                if (totalSize == null)
+                {
+                    totalSize = Directory.EnumerateFiles(root, string.Empty, SearchOption.AllDirectories).Sum(x => new FileInfo(x).Length);
+                }
+
+                return totalSize.Value;
+            }
         }
 
         public void Initialize()
         {
-            fileLocator.PrepareDirectory(root);
+            for (var i = 0; i < 16 * 16; ++i)
+            {
+                Directory.CreateDirectory(Path.Combine(root, i.ToString("X2")));
+            }
         }
 
         public FileHandle Retrieve(Guid id)
         {
-            return FixPath(handleStore.Get(id));
+            return handleStore.Get(id);
         }
-
-        public FileHandle Insert(Stream stream)
+        
+        public FileHandle Insert(Stream stream, string filename)
         {
-            if (stream == null) throw new ArgumentNullException("stream");
-
-            var id = Guid.NewGuid();
-            var destination = fileLocator.GetPath(id);
-
-            using (var filestream = File.Create(Path.Combine(root, destination)))
+            var handle = new FileHandle(Guid.NewGuid(), Locate(filename));
+            using (var filestream = File.Create(handle.Path))
             {
                 stream.CopyTo(filestream);
             }
 
-            var handle = new FileHandle(id, destination);
             handleStore.Insert(handle);
+            totalSize = null;
 
-            return FixPath(handle);
+            return handle;
         }
-
+        
         public FileHandle Insert(string path)
         {
-            if (path == null) throw new ArgumentNullException("path");
-            if (!File.Exists(path)) throw new FileNotFoundException("The file could not be found", path);
+            var handle = new FileHandle(Guid.NewGuid(), Locate(path));
+            File.Copy(path, handle.Path);
 
-            var id = Guid.NewGuid();
-            var destination = fileLocator.GetPath(path);
-
-            File.Copy(path, Path.Combine(root, destination));
-
-            var handle = new FileHandle(id, destination);
             handleStore.Insert(handle);
+            totalSize = null;
 
-            return FixPath(handle);
+            return handle;
         }
 
         public FileHandle Duplicate(Guid id)
         {
             var handle = handleStore.Get(id);
-            if (handle == null)
-            {
-                throw new ArgumentException("No handle with id found.", "id");
-            }
-
             var duplicate = new FileHandle(Guid.NewGuid(), handle.Path);
 
             handleStore.Insert(duplicate);
 
-            return FixPath(duplicate);
+            return duplicate;
         }
-
-        public FileHandle Replace(Guid id, Stream stream)
+        
+        public FileHandle Replace(Guid id, Stream stream, string filename)
         {
-            if (stream == null) throw new ArgumentNullException("stream");
-
-            var destination = fileLocator.GetPath(Guid.NewGuid());
-
-            using (var filestream = File.Create(Path.Combine(root, destination)))
+            var replacement = new FileHandle(id, Locate(filename));
+            using (var filestream = File.Create(replacement.Path))
             {
                 stream.CopyTo(filestream);
             }
 
-            var replacement = new FileHandle(id, destination);
             handleStore.Update(replacement);
+            totalSize = null;
 
-            return FixPath(replacement);
+            return replacement;
         }
-
+        
         public FileHandle Replace(Guid id, string path)
         {
-            if (path == null) throw new ArgumentNullException("path");
-            if (!File.Exists(path)) throw new FileNotFoundException("The file could not be found", path);
+            var replacement = new FileHandle(id, Locate(path));
+            File.Copy(path, replacement.Path);
 
-            var destination = fileLocator.GetPath(path);
-            File.Copy(path, Path.Combine(root, destination));
-
-            var replacement = new FileHandle(id, destination);
             handleStore.Update(replacement);
+            totalSize = null;
 
-            return FixPath(replacement);
+            return replacement;
         }
 
         public void Remove(Guid id)
@@ -122,17 +114,18 @@ namespace Store
             handleStore.Remove(id);
         }
 
-        private FileHandle FixPath(FileHandle handle)
+        private string Locate(string path)
         {
-            return new FileHandle(handle.Id, Path.Combine(root, handle.Path));
+            var id = Guid.NewGuid().ToString();
+            return Path.Combine(root, id.Substring(0, 2), string.Concat(id.Substring(2), Path.GetExtension(path)));
         }
 
         private void OnLastHandleRemoved(object sender, FileHandleEventArgs e)
         {
-            var path = Path.Combine(root, e.Handle.Path);
-            if (File.Exists(path))
+            if (File.Exists(e.Handle.Path))
             {
-                File.Delete(path);
+                File.Delete(e.Handle.Path);
+                totalSize = null;
             }
         }
     }
