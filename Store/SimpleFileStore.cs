@@ -58,7 +58,10 @@ namespace Store
             }
 
             handleStore.Insert(handle);
-            totalSize = null;
+            if (totalSize != null)
+            {
+                totalSize += handle.Size;
+            }
 
             return handle;
         }
@@ -69,7 +72,10 @@ namespace Store
             File.Copy(path, handle.Path);
 
             handleStore.Insert(handle);
-            totalSize = null;
+            if (totalSize != null)
+            {
+                totalSize += handle.Size;
+            }
 
             return handle;
         }
@@ -93,7 +99,10 @@ namespace Store
             }
 
             handleStore.Update(replacement);
-            totalSize = null;
+            if (totalSize != null)
+            {
+                totalSize += replacement.Size;
+            }
 
             return replacement;
         }
@@ -104,7 +113,10 @@ namespace Store
             File.Copy(path, replacement.Path);
 
             handleStore.Update(replacement);
-            totalSize = null;
+            if (totalSize != null)
+            {
+                totalSize += replacement.Size;
+            }
 
             return replacement;
         }
@@ -124,8 +136,12 @@ namespace Store
         {
             if (File.Exists(e.Handle.Path))
             {
+                if (totalSize != null)
+                {
+                    totalSize -= e.Handle.Size;
+                }
+
                 File.Delete(e.Handle.Path);
-                totalSize = null;
             }
         }
     }

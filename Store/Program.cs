@@ -3,10 +3,6 @@ using System.IO;
 
 namespace Store
 {
-    // TODO
-    // Cannot support repository moving as absolute paths are stored - wrapper store?
-    // Cannot support multiple repositories - wrapper store?
-
     class Program
     {
         static void Main(string[] args)

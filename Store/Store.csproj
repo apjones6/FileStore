@@ -46,7 +46,7 @@
     <Compile Include="DistributedFileStore.cs" />
     <Compile Include="FileHandle.cs" />
     <Compile Include="FileHandleEventArgs.cs" />
-    <Compile Include="FileStore.cs" />
+    <Compile Include="SimpleFileStore.cs" />
     <Compile Include="FileStoreLogWrapper.cs">
       <SubType>Code</SubType>
     </Compile>
