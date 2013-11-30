@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Store
+namespace Cdsm.FileStorage
 {
     public class FileHandleEventArgs : EventArgs
     {

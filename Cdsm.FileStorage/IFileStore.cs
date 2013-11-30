@@ -1,23 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
-namespace Store
+namespace Cdsm.FileStorage
 {
     public interface IFileStore
     {
-        long TotalSize { get; }
-
-        void Initialize();
-
-        FileHandle Retrieve(Guid id);
+        IDictionary<Guid, FileHandle> Get(IEnumerable<Guid> ids);
+        FileHandle Get(Guid id);
 
         FileHandle Insert(Stream stream, string filename);
-        FileHandle Insert(string path);
+        FileHandle Insert(string filename);
 
         FileHandle Duplicate(Guid id);
 
         FileHandle Replace(Guid id, Stream stream, string filename);
-        FileHandle Replace(Guid id, string path);
+        FileHandle Replace(Guid id, string filename);
 
         void Remove(Guid id);
     }
